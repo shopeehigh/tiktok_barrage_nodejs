@@ -4,7 +4,7 @@
 // }
 
 const Barrage = class {
-    wsurl = "ws://127.0.0.1:9527"
+    wsurl = "ws://127.0.0.1:9526"
     timer = null
     timeinterval = 10 * 1000 // 断线重连轮询间隔
     propsId = null

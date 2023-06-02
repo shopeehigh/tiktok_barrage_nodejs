@@ -27,7 +27,7 @@ const Barrage = class {
         }
         this.propsId = Object.keys(document.querySelector('.webcast-chatroom___list'))[1]
         this.chatDom = document.querySelector('.webcast-chatroom___items').children[0]
-        this.roomJoinDom = document.querySelector('.webcast-chatroom___bottom-message')
+        this.roomJoinDom = document.querySelector('.webcast-chatroom___bottom-message').children[0]
         this.ws = new WebSocket(this.wsurl)
         this.ws.onclose = this.wsClose
         this.ws.onopen = () => {
@@ -35,7 +35,7 @@ const Barrage = class {
         }
     }
 
-    // 消息事件 , join, message, like, follow
+    // 消息事件 , enter,like,share,gift,follow
     on(e, cb) {
         this.eventRegirst[e] = true
         this.event[e] = cb
@@ -74,7 +74,7 @@ const Barrage = class {
                         let user = dom[this.propsId].children.props.message.payload.user
                         let msg = {
                             ...this.getUser(user),
-                            ...{ type: '进直播间' }
+                            ... { msg_content: `${user.nickname} 来了` }
                         }
                         if (this.eventRegirst.join) {
                             this.event['join'](msg)
@@ -90,81 +90,134 @@ const Barrage = class {
         this.chatObserverrom = new MutationObserver((mutationsList, observer) => {
             for (let mutation of mutationsList) {
                 if (mutation.type === 'childList' && mutation.addedNodes.length) {
-                    let dom = mutation.addedNodes[0]
-                    let user = dom.props.message.payload.user
-                    let msg = null
-                    switch (dom.props.message.payload.message_type) {
-                        case 1:
-                            msg = {
-                                ...this.getUser(user),
-                                ...{ type: '聊天消息', msg_content: dom.props.message.payload.content }
-                            }
+                    let b = mutation.addedNodes[0]
+                    if (b[this.propsId].children.props.message) {
+                        let message = this.messageParse(b)
+                        if (message) {
                             if (this.eventRegirst.message) {
-                                this.event['message'](msg)
+                                this.event['join'](message)
                             }
-                            break;
-                        case 2:
-                            msg = {
-                                ...this.getUser(user),
-                                ...{ type: '点赞消息' }
+                            if (_this.option.message === false && !message.isGift) {
+                                return
                             }
-                            if (this.eventRegirst.like) {
-                                this.event['like'](msg)
-                            }
-                            break;
-                        case 4:
-                            msg = {
-                                ...this.getUser(user),
-                                ...{ type: '关注消息' }
-                            }
-                            if (this.eventRegirst.follow) {
-                                this.event['follow'](msg)
-                            }
-                            break;
-                        case 5:
-                            let gift = dom.props.message.payload.gift
-                            msg = {
-                                ...this.getUser(user),
-                                ...{
-                                    type: '礼物消息',
-                                    gift_id: gift.id,
-                                    gift_name: gift.name,
-                                    gift_number: gift.num,
-                                    gift_image: gift.image,
-                                    gift_diamondCount: gift.diamond_count,
-                                    gift_describe: gift.describe,
-                                    msg_content: `${this.getUser(user).user_nickName}: 送给主播 ${gift.num}个${gift.name}`,
-                                    isGift: true
-                                }
-                            }
-                            if (this.eventRegirst.gift) {
-                                this.event['gift'](msg)
-                            }
-                            break;
-                    }
-                    if (this.eventRegirst.message || this.eventRegirst.like || this.eventRegirst.follow || this.eventRegirst.gift) {
-                        console.log(msg)
+                            this.ws.send(JSON.stringify({ action: 'message', message: message }));
+                        }
                     }
                 }
             }
         });
-        this.chatObserverrom.observe(this.chatDom, { childList: true })
+        this.chatObserverrom.observe(this.chatDom, { childList: true });
     }
-
     getUser(user) {
-        return {
-            user_level: user.level,
-            user_fansLevel: user.fans_level,
+        if (!user) {
+            return
+        }
+        let msg = {
+            user_level: this.getLevel(user.badgeImageList, 1),
+            user_fansLevel: this.getLevel(user.badgeImageList, 7),
             user_id: user.id,
             user_nickName: user.nickname,
-            user_avatar: user.head_img_url,
+            user_avatar: user.avatarThumb.urlList[0],
             user_gender: user.gender === 1 ? '男' : '女',
-            user_isAdmin: user.is_admin,
-            user_fansLightName: user.fans_light_name,
-            user_levelImage: user.level_image
+            user_isAdmin: user.userAttr.isAdmin,
+            user_fansLightName: "",
+            user_levelImage: ""
+        }
+        return msg
+    }
+    getLevel(arr, type) {
+        if (!arr || arr.length === 0) {
+            return 0
+        }
+        let item = arr.find(i => {
+            return i.imageType === type
+        })
+        if (item) {
+            return parseInt(item.content.level)
+        } else {
+            return 0
         }
     }
+    messageParse(dom) {
+        if (!dom[this.propsId].children.props.message) {
+            return null
+        }
+        let msg = dom[this.propsId].children.props.message.payload
+        let result = {
+            repeatCount: null,
+            gift_id: null,
+            gift_name: null,
+            gift_number: null,
+            gift_image: null,
+            gift_diamondCount: null,
+            gift_describe: null,
+        }
+
+        result = Object.assign(result, this.getUser(msg.user))
+        switch (msg.common.method) {
+            case 'WebcastGiftMessage'://礼物
+                console.log(msg)
+                result = Object.assign(result, {
+                    // repeatCount: parseInt(),
+                    msg_content: msg.common.describe,
+                    isGift: true,
+                    gift_id: msg.gift.id,
+                    gift_name: msg.gift.name,
+                    // gift_number: parseInt(msg.comboCount),
+                    gift_number: parseInt(msg.repeatCount),
+                    gift_image: msg.gift.icon.urlListList[0],
+                    gift_diamondCount: msg.gift.diamondCount,
+                    gift_describe: msg.gift.describe,
+                })
+                break
+            case 'WebcastMemberMessage'://进入房间
+                result = Object.assign(result, {
+                    isGift: false,
+                    msg_content: `${msg.user.nickname} 来了`
+                })
+                break
+            case 'WebcastLikeMessage'://点赞    
+                result = Object.assign(result, {
+                    isGift: false,
+                    msg_content: `${msg.user.nickname} 点赞了主播`
+                })
+                break     
+            case 'WebcastSocialMessage'://关注
+                result = Object.assign(result, {
+                    isGift: false,
+                    msg_content: `${msg.user.nickname} 关注了主播`
+                })
+                break
+            case 'WebcastShareMessage'://分享
+                result = Object.assign(result, {
+                    isGift: false,
+                    msg_content: `${msg.user.nickname} 分享了直播间`
+                })
+                break
+            case 'WebcastChatMessage'://聊天
+                result = Object.assign(result, {
+                    isGift: false,
+                    msg_content: msg.content
+                })
+                break                             
+            default:
+                result = Object.assign(result, {
+                    isGift: false,
+                    msg_content: msg.content
+                })
+                break
+        }
+        return result
+    }
 }
-window.onDouyinServer = function() {
-    new Barrage({ message: false })
+
+if (window.onDouyinServer) {
+    window.onDouyinServer()
 }
+
+window.removeVideoLayer = function() {
+    document.querySelector('.basicPlayer').remove()
+    console.log('删除画面成功,不影响弹幕信息接收')
+}
+
+

@@ -28,7 +28,6 @@ const Barrage = class {
         this.propsId = Object.keys(document.querySelector('.webcast-chatroom___list'))[1]
         this.chatDom = document.querySelector('.webcast-chatroom___items').children[0]
         this.roomJoinDom = document.querySelector('.webcast-chatroom___bottom-message')
-        console.log(chatDom.innerText);
         this.ws = new WebSocket(this.wsurl)
         this.ws.onclose = this.wsClose
         this.ws.onopen = () => {
@@ -36,7 +35,7 @@ const Barrage = class {
         }
     }
 
-    // 消息事件 , enter,like,share,gift,follow
+    // 消息事件 , join, message
     on(e, cb) {
         this.eventRegirst[e] = true
         this.event[e] = cb
@@ -156,15 +155,7 @@ const Barrage = class {
 
         result = Object.assign(result, this.getUser(msg.user))
         switch (msg.common.method) {
-            case 'WebcastMemberMessage'://进入房间
-                const roomJoinDom = document.querySelector('.webcast-chatroom___bottom-message');
-                const message = roomJoinDom.innerText;
-                result = Object.assign(result, {
-                    isGift: false,
-                    msg_content: message
-                })
-                break                
-            case 'WebcastGiftMessage'://礼物
+            case 'WebcastGiftMessage':
                 console.log(msg)
                 result = Object.assign(result, {
                     // repeatCount: parseInt(),
@@ -179,36 +170,12 @@ const Barrage = class {
                     gift_describe: msg.gift.describe,
                 })
                 break
-            case 'WebcastMemberMessage'://进入房间
-                result = Object.assign(result, {
-                    isGift: false,
-                    msg_content: `${msg.user.nickname} 来了`
-                })
-                break
-            case 'WebcastLikeMessage'://点赞    
-                result = Object.assign(result, {
-                    isGift: false,
-                    msg_content: `${msg.user.nickname} 点赞了主播`
-                })
-                break     
-            case 'WebcastSocialMessage'://关注
-                result = Object.assign(result, {
-                    isGift: false,
-                    msg_content: `${msg.user.nickname} 关注了主播`
-                })
-                break
-            case 'WebcastShareMessage'://分享
-                result = Object.assign(result, {
-                    isGift: false,
-                    msg_content: `${msg.user.nickname} 分享了直播间`
-                })
-                break
-            case 'WebcastChatMessage'://聊天
+            case 'WebcastChatMessage':
                 result = Object.assign(result, {
                     isGift: false,
                     msg_content: msg.content
                 })
-                break                             
+                break
             default:
                 result = Object.assign(result, {
                     isGift: false,
@@ -228,5 +195,3 @@ window.removeVideoLayer = function() {
     document.querySelector('.basicPlayer').remove()
     console.log('删除画面成功,不影响弹幕信息接收')
 }
-
-

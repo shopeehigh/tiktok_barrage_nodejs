@@ -67,29 +67,23 @@ const Barrage = class {
     runServer() {
         let _this = this
         if (this.option.join) {
-            this.bottomMessageObserver = new MutationObserver((mutationsList) => {
+            this.observer = new MutationObserver((mutationsList) => {
                 for (let mutation of mutationsList) {
                     if (mutation.type === 'childList' && mutation.addedNodes.length) {
-                        let b = mutation.addedNodes[0]
-                        let username = b.querySelector('.LU6dHmmD')?.textContent;
-                        let content = b.querySelector('.JqBinbea')?.textContent;
-                        if (username && content) {
-                            let msg = {
-                                user_nickName: username,
-                                msg_content: content
-                            }
-                            if (this.eventRegirst.message) {
-                                this.event['message'](msg)
-                            }
-                            this.ws.send(JSON.stringify({ action: 'join', message: msg, source: 'bottom-message' }));
+                        let dom = mutation.addedNodes[0]
+                        let user = dom[this.propsId].children.props.message.payload.user
+                        let msg = {
+                            ...this.getUser(user),
+                            ... { msg_content: `${user.nickname} 来了` }
                         }
+                        if (this.eventRegirst.join) {
+                            this.event['join'](msg)
+                        }
+                        this.ws.send(JSON.stringify({ action: 'join', message: msg }));
                     }
                 }
             });
-       
-
-        let bottomMessageDom = document.querySelector('.webcast-chatroom___bottom-message');
-        this.bottomMessageObserver.observe(bottomMessageDom, { childList: true });
+            this.observer.observe(this.roomJoinDom, { childList: true });
         }  
  
 
@@ -114,7 +108,29 @@ const Barrage = class {
         });
         this.chatObserverrom.observe(this.chatDom, { childList: true });
         
-        
+        this.bottomMessageObserver = new MutationObserver((mutationsList) => {
+            for (let mutation of mutationsList) {
+                if (mutation.type === 'childList' && mutation.addedNodes.length) {
+                    let b = mutation.addedNodes[0]
+                    let username = b.querySelector('.LU6dHmmD')?.textContent;
+                    let content = b.querySelector('.JqBinbea')?.textContent;
+                    if (username && content) {
+                        let msg = {
+                            user_nickName: username,
+                            msg_content: content
+                        }
+                        if (this.eventRegirst.message) {
+                            this.event['message'](msg)
+                        }
+                        this.ws.send(JSON.stringify({ action: 'message', message: msg, source: 'bottom-message' }));
+                    }
+                }
+            }
+        });
+
+
+        let bottomMessageDom = document.querySelector('.webcast-chatroom___bottom-message');
+        this.bottomMessageObserver.observe(bottomMessageDom, { childList: true });        
         
         
 

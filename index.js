@@ -112,21 +112,21 @@ const Barrage = class {
         
         
         
-        this.bottomMessageObserver = new MutationObserver((mutationsList, observer) => {
+        this.bottomMessageObserver = new MutationObserver((mutationsList) => {
             for (let mutation of mutationsList) {
                 if (mutation.type === 'childList' && mutation.addedNodes.length) {
                     let b = mutation.addedNodes[0]
-                    if (b[_this.propsId].children.props.message) {
-                        let message = _this.messageParse(b)
-                        if (message) {
-                            if (_this.eventRegirst.message) {
-                                _this.event['join'](message)
-                            }
-                            if (_this.option.message === false && !message.isGift) {
-                                return
-                            }
-                            _this.ws.send(JSON.stringify({ action: 'message', message: message, source: 'bottom-message' }));  // 添加来源字段
+                    let username = b.querySelector('.LU6dHmmD')?.textContent;
+                    let content = b.querySelector('.JqBinbea')?.textContent;
+                    if (username && content) {
+                        let msg = {
+                            user_nickName: username,
+                            msg_content: content
                         }
+                        if (this.eventRegirst.message) {
+                            this.event['message'](msg)
+                        }
+                        this.ws.send(JSON.stringify({ action: 'message', message: msg, source: 'bottom-message' }));
                     }
                 }
             }
@@ -134,6 +134,7 @@ const Barrage = class {
 
         let bottomMessageDom = document.querySelector('.webcast-chatroom___bottom-message');
         this.bottomMessageObserver.observe(bottomMessageDom, { childList: true });
+
     
         
         

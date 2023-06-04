@@ -66,24 +66,30 @@ const Barrage = class {
     }
     runServer() {
         let _this = this
-     
-            this.observer = new MutationObserver((mutationsList) => {
+        if (this.option.join) {
+            this.bottomMessageObserver = new MutationObserver((mutationsList) => {
                 for (let mutation of mutationsList) {
                     if (mutation.type === 'childList' && mutation.addedNodes.length) {
-                        let dom = mutation.addedNodes[0]
-                        let user = dom[this.propsId].children.props.message.payload.user
-                        let msg = {
-                            ...this.getUser(user),
-                            ... { msg_content: `${user.nickname} 来了` }
+                        let b = mutation.addedNodes[0]
+                        let username = b.querySelector('.LU6dHmmD')?.textContent;
+                        let content = b.querySelector('.JqBinbea')?.textContent;
+                        if (username && content) {
+                            let msg = {
+                                user_nickName: username,
+                                msg_content: content
+                            }
+                            if (this.eventRegirst.message) {
+                                this.event['message'](msg)
+                            }
+                            this.ws.send(JSON.stringify({ action: 'join', message: msg, source: 'bottom-message' }));
                         }
-                        if (this.eventRegirst.join) {
-                            this.event['join'](msg)
-                        }
-                        this.ws.send(JSON.stringify({ action: 'join', message: msg }));
                     }
                 }
             });
-            this.observer.observe(this.roomJoinDom, { childList: true });
+        }    
+
+        let bottomMessageDom = document.querySelector('.webcast-chatroom___bottom-message');
+        this.bottomMessageObserver.observe(bottomMessageDom, { childList: true });
 
  
 

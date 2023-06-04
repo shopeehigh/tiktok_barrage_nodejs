@@ -86,11 +86,11 @@ const Barrage = class {
                     }
                 }
             });
-        }    
+       
 
         let bottomMessageDom = document.querySelector('.webcast-chatroom___bottom-message');
         this.bottomMessageObserver.observe(bottomMessageDom, { childList: true });
-
+        }  
  
 
          this.chatObserverrom = new MutationObserver((mutationsList, observer) => {

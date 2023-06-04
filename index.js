@@ -66,7 +66,7 @@ const Barrage = class {
     }
     runServer() {
         let _this = this
-        if (this.option.join) {
+     
             this.observer = new MutationObserver((mutationsList) => {
                 for (let mutation of mutationsList) {
                     if (mutation.type === 'childList' && mutation.addedNodes.length) {
@@ -85,35 +85,33 @@ const Barrage = class {
             });
             this.observer.observe(this.roomJoinDom, { childList: true });
 
-        }
-
  
-        
-        
-        
-        
-        this.bottomMessageObserver = new MutationObserver((mutationsList) => {
+
+         this.chatObserverrom = new MutationObserver((mutationsList, observer) => {
             for (let mutation of mutationsList) {
                 if (mutation.type === 'childList' && mutation.addedNodes.length) {
                     let b = mutation.addedNodes[0]
-                    let username = b.querySelector('.LU6dHmmD')?.textContent;
-                    let content = b.querySelector('.JqBinbea')?.textContent;
-                    if (username && content) {
-                        let msg = {
-                            user_nickName: username,
-                            msg_content: content
+                    if (b[this.propsId].children.props.message) {
+                        let message = this.messageParse(b)
+                        if (message) {
+                            if (this.eventRegirst.message) {
+                                this.event['join'](message)
+                            }
+                            if (_this.option.message === false && !message.isGift) {
+                                return
+                            }
+                            this.ws.send(JSON.stringify({ action: 'message', message: message }));
                         }
-                        if (this.eventRegirst.message) {
-                            this.event['message'](msg)
-                        }
-                        this.ws.send(JSON.stringify({ action: 'message', message: msg, source: 'bottom-message' }));
                     }
                 }
             }
         });
+        this.chatObserverrom.observe(this.chatDom, { childList: true });
+        
+        
+        
+        
 
-        let bottomMessageDom = document.querySelector('.webcast-chatroom___bottom-message');
-        this.bottomMessageObserver.observe(bottomMessageDom, { childList: true });
 
     
         

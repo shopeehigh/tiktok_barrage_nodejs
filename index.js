@@ -156,6 +156,14 @@ const Barrage = class {
 
         result = Object.assign(result, this.getUser(msg.user))
         switch (msg.common.method) {
+            case 'WebcastMemberMessage'://进入房间
+                const roomJoinDom = document.querySelector('.webcast-chatroom___bottom-message');
+                const message = roomJoinDom.innerText;
+                result = Object.assign(result, {
+                    isGift: false,
+                    msg_content: message
+                })
+                break                
             case 'WebcastGiftMessage'://礼物
                 console.log(msg)
                 result = Object.assign(result, {

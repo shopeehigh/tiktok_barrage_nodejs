@@ -87,27 +87,7 @@ const Barrage = class {
 
         }
 
-        this.chatObserverrom = new MutationObserver((mutationsList, observer) => {
-            for (let mutation of mutationsList) {
-                if (mutation.type === 'childList' && mutation.addedNodes.length) {
-                    let b = mutation.addedNodes[0]
-                    if (b[this.propsId].children.props.message) {
-                        let message = this.messageParse(b)
-                        if (message) {
-                            if (this.eventRegirst.message) {
-                                this.event['join'](message)
-                            }
-                            if (_this.option.message === false && !message.isGift) {
-                                return
-                            }
-                            this.ws.send(JSON.stringify({ action: 'message', message: message }));
-                        }
-                    }
-                }
-            }
-        });
-        this.chatObserverrom.observe(this.chatDom, { childList: true });
-        
+ 
         
         
         
